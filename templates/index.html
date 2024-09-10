@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Group Inviter</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div id="main-container">
+        <h1>Auto Inviter - Thêm thành viên vào nhóm Facebook</h1>
+        <div id="input-section">
+            <form id="invite-form" action="/submit" method="post">
+                <label for="cookies">Nhập vào cookie Facebook của bạn:</label><br>
+                <input type="text" id="cookies" name="cookies" placeholder="Nhập cookie Facebook tại đây" required><br><br>
+                <label for="uid_group">Nhập vào UID Group cần mời:</label><br>
+                <input type="text" id="uid_group" name="uid_group" placeholder="Nhập UID Group tại đây" required><br><br>
+                <label for="uid">Nhập vào danh sách UID cần mời:</label><br>
+                <textarea id="uid" name="uid" placeholder="Nhập UID tại đây, mỗi UID trên một dòng" required></textarea><br><br>
+                <input type="submit" value="Tăng thành viên ngay">
+            </form>
+        </div>
+
+        <div id="loading-section">
+            <div class="loading-spinner" id="loading-spinner"></div>
+            <p id="loading-message">Đang xử lý, vui lòng chờ trong giây lát...</p>
+        </div>
+
+        <div id="status-section">
+            <h2>Trạng thái mời</h2>
+            <ul id="status-list"></ul>
+        </div>
+
+        <div id="instructions">
+            <p>+ Dữ liệu kết quả sẽ KHÔNG được lưu trữ. Vì vậy, khi sử dụng tool xong, bạn cần sao chép hoặc tải xuống kết quả trước khi đóng tab trang web này.</p>
+            <p>+ Chỉ thêm đối với những UID đã có kết bạn với Facebook với tài khoản bạn sử dụng Cookies.</p>
+            <p>+ Nếu những UID đó đã tham gia group thì lời mời sẽ không thành công.</p>
+            <p>+ Phải chắc chắn GROUP bạn thêm vào </p>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#invite-form').on('submit', function(event) {
+                event.preventDefault();
+                
+                // Hiển thị thanh loading và thông báo
+                $('#loading-spinner').show();
+                $('#loading-message').show();
+                
+                // Xóa danh sách trạng thái trước đó
+                $('#status-list').empty();
+
+                // Lấy các UID từ textarea, tách theo từng dòng
+                var uids = $('#uid').val().split('\n');
+
+                $.ajax({
+                    url: '/submit',
+                    type: 'POST',
+                    data: {
+                        cookies: $('#cookies').val(),
+                        uid_group: $('#uid_group').val(),
+                        uids: uids // Gửi danh sách UID dưới dạng mảng
+                    },
+                    success: function(response) {
+                        $('#loading-spinner').hide();  // Ẩn loading spinner
+                        $('#loading-message').hide();  // Ẩn thông báo chờ
+
+                        // Duyệt qua kết quả trả về
+                        response.uids.forEach(function(result) {
+                            if (result.status === 'success') {
+                                $('#status-list').append('<li class="success">Mời UID [' + result.uid + '] tham gia Group thành công!</li>');
+                            } else {
+                                $('#status-list').append('<li class="failure">Mời UID [' + result.uid + '] không thành công!</li>');
+                            }
+                        });
+                    },
+                    error: function(error) {
+                        $('#loading-spinner').hide();  // Ẩn loading spinner
+                        $('#loading-message').hide();  // Ẩn thông báo chờ
+
+                        $('#status-list').append('<li class="failure">Lỗi xảy ra: ' + error.responseJSON.message + '</li>');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
