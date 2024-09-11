@@ -36,55 +36,65 @@
             <p>+ Dữ liệu kết quả sẽ KHÔNG được lưu trữ. Vì vậy, khi sử dụng tool xong, bạn cần sao chép hoặc tải xuống kết quả trước khi đóng tab trang web này.</p>
             <p>+ Chỉ thêm đối với những UID đã có kết bạn với Facebook với tài khoản bạn sử dụng Cookies.</p>
             <p>+ Nếu những UID đó đã tham gia group thì lời mời sẽ không thành công.</p>
-            <p>+ Phải chắc chắn GROUP bạn thêm vào </p>
+            <p>+ Phải chắc chắn GROUP bạn là thành viên của GROUP h </p>
         </div>
     </div>
 
     <script>
-        $(document).ready(function() {
-            $('#invite-form').on('submit', function(event) {
-                event.preventDefault();
-                
-                // Hiển thị thanh loading và thông báo
-                $('#loading-spinner').show();
-                $('#loading-message').show();
-                
-                // Xóa danh sách trạng thái trước đó
-                $('#status-list').empty();
+      $(document).ready(function() {
+        $('#invite-form').on('submit', function(event) {
+            event.preventDefault();
 
-                // Lấy các UID từ textarea, tách theo từng dòng
-                var uids = $('#uid').val().split('\n');
+            // Hiển thị thanh loading và thông báo
+            $('#loading-spinner').show();
+            $('#loading-message').show();
 
-                $.ajax({
-                    url: '/submit',
-                    type: 'POST',
-                    data: {
-                        cookies: $('#cookies').val(),
-                        uid_group: $('#uid_group').val(),
-                        uids: uids // Gửi danh sách UID dưới dạng mảng
-                    },
-                    success: function(response) {
-                        $('#loading-spinner').hide();  // Ẩn loading spinner
-                        $('#loading-message').hide();  // Ẩn thông báo chờ
+            // Xóa danh sách trạng thái trước đó
+            $('#status-list').empty();
 
-                        // Duyệt qua kết quả trả về
+            // Lấy các UID từ textarea, tách theo từng dòng
+            var uids = $('#uid').val().split('\n');
+
+            $.ajax({
+                url: '/submit',
+                type: 'POST',
+                data: {
+                    cookies: $('#cookies').val(),
+                    uid_group: $('#uid_group').val(),
+                    uids: uids // Gửi danh sách UID dưới dạng mảng
+                },
+                success: function(response, textStatus, xhr) {
+                    $('#loading-spinner').hide();  // Ẩn loading spinner
+                    $('#loading-message').hide();  // Ẩn thông báo chờ
+
+                    // Kiểm tra mã trạng thái HTTP
+                    if (xhr.status === 200) {
                         response.uids.forEach(function(result) {
                             if (result.status === 'success') {
                                 $('#status-list').append('<li class="success">Mời UID [' + result.uid + '] tham gia Group thành công!</li>');
-                            } else {
-                                $('#status-list').append('<li class="failure">Mời UID [' + result.uid + '] không thành công!</li>');
+                            } else if (result.status === 'failure') {
+                                $('#status-list').append('<li class="failure">Mời UID [' + result.uid + '] không thành công! Lý do: ' + result.message + '</li>');
+                            } else if (result.status === 'done') {
+                                $('#status-list').append('<li class="failure">Mời UID [' + result.uid + '] không thành công! Lý do: ' + result.message + '</li>');
                             }
                         });
-                    },
-                    error: function(error) {
-                        $('#loading-spinner').hide();  // Ẩn loading spinner
-                        $('#loading-message').hide();  // Ẩn thông báo chờ
-
-                        $('#status-list').append('<li class="failure">Lỗi xảy ra: ' + error.responseJSON.message + '</li>');
+                    } else if (xhr.status === 201) {
+                        $('#status-list').append('<li class="failure">Lời mời bị chặn bởi Facebook!,UID có thể đang ở chế độ riêng tư hoặc chưa chấp nhận lời mời vào nhóm</li>');
+                    } else if (xhr.status === 202) {
+                        $('#status-list').append('<li class="failure">Hết UID để mời!</li>');
+                    } else if (xhr.status === 204) {
+                        $('#status-list').append('<li class="failure">Cookie không hợp lệ, vui lòng nhập lại cookie.</li>');
                     }
-                });
+                },
+                error: function(error) {
+                    $('#loading-spinner').hide();  // Ẩn loading spinner
+                    $('#loading-message').hide();  // Ẩn thông báo chờ
+
+                    $('#status-list').append('<li class="failure">Lỗi xảy ra: ' + error.responseJSON.message + '</li>');
+                }
             });
         });
+    });
     </script>
 </body>
 </html>
